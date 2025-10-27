@@ -3,7 +3,7 @@
     /* Base Options: */
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "target": "es6",
+    "target": "es2024",
     "allowJs": true,
     "resolveJsonModule": true,
     "moduleDetection": "force",
@@ -44,7 +44,10 @@
       "@/*": [
         "./src/*"
       ]
-    }
+    },
+    "types": [
+      "./src/lib/index.d.ts"
+    ]
   },
   "include": [
     "next-env.d.ts",

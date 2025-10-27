@@ -1,64 +1,162 @@
-import Image from "next/image";
+"use client";
+import Country from "@/lib/Country";
+import { useEffect, useState } from "react";
+import { createNoise2D } from "simplex-noise";
+
+const width = 1750;
+const height = 800;
+const scale = 0.05;
 
 export default function Home() {
+  const randomName = (): string => {
+    const syllables = [
+      "ka",
+      "lo",
+      "na",
+      "ri",
+      "ta",
+      "me",
+      "zu",
+      "fi",
+      "sha",
+      "po",
+    ];
+    const len = 2 + Math.floor(Math.random() * 2);
+    return syllables
+      .sort(() => 0.5 - Math.random())
+      .slice(0, len)
+      .join("")
+      .replace(/^\w/, (c) => c.toUpperCase());
+  };
+
+  const [countries, setCountries] = useState<Array<Country>>([]);
+  const [selectedCountry, setSelectedCountry] = useState<Country | null>(null);
+  useEffect(() => {
+    const noise = createNoise2D();
+    const cols = 200;
+    const rows = 100;
+    const threshold = 0.35;
+    let ID = 0;
+
+    const generatedCountries: Array<Country> = [];
+    const grid = Array.from({ length: rows }, (_, y) =>
+      Array.from({ length: cols }, (_, x) => noise(x * scale, y * scale))
+    );
+
+    const visited = Array.from({ length: rows }, () => Array(cols).fill(false));
+
+    const floodFill = (x: number, y: number, cells: Cells) => {
+      const stack: Array<[number, number]> = [[x, y]];
+      visited[y]![x] = true;
+
+      while (stack.length) {
+        const [cx, cy]: Cell = stack.pop()!;
+        cells.push([cx, cy] as Cell);
+        const offsets: Cells = [
+          [1, 0],
+          [-1, 0],
+          [0, 1],
+          [0, -1],
+        ];
+        offsets.forEach(([dx, dy]) => {
+          const nx = cx + dx;
+          const ny = cy + dy;
+          if (
+            nx >= 0 &&
+            ny >= 0 &&
+            nx < cols &&
+            ny < rows &&
+            !visited[ny]![nx] &&
+            grid[ny]![nx]! > threshold
+          ) {
+            visited[ny]![nx] = true;
+            stack.push([nx, ny]);
+          }
+        });
+      }
+    };
+
+    for (let y = 0; y < rows; ++y) {
+      for (let x = 0; x < cols; ++x) {
+        if (!visited[y]?.[x] && grid[y]![x]! > threshold) {
+          const cells: Cells = [];
+          floodFill(x, y, cells);
+          if (cells.length > 10) {
+            generatedCountries.push(new Country(ID, randomName(), cells));
+            ++ID;
+          }
+        }
+      }
+    }
+
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCountries(generatedCountries);
+  }, []);
+
+  const cellSize = width / 200;
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <div className="flex flex-col min-h-screen items-center justify-center font-sans bg-black">
+      {selectedCountry && (
+        <header className="absolute w-1/2 top-6 flex flex-col gap-x-36 rounded-xl bg-gray-800 p-4 text-center shadow-lg">
+          <div className="flex *:inline-block *:mx-12 *:flex-2/5">
+            <div>
+              <h2 className="text-xl font-bold *:text-sm *:text-gray-400">
+                {selectedCountry.name}
+              </h2>
+              <p>
+                Population:{" "}
+                {selectedCountry.population < 10 ** 6
+                  ? `${(selectedCountry.population / 1000).toFixed(2)}k`
+                  : `${(selectedCountry.population / 10 ** 6).toFixed(2)} Mio`}
+              </p>
+            </div>
+            <div>
+              <h2 className="text-xl font-bold *:text-sm *:text-gray-400">
+                Economy
+              </h2>
+              <p>BIP / Capita: {selectedCountry.BIPpC}</p>
+              <p>
+                BIP:{" "}
+                {selectedCountry.BIP < 10 ** 6
+                  ? `${(selectedCountry.BIP / 1000).toFixed(2)}k`
+                  : selectedCountry.BIP < 10 ** 9
+                  ? `${(selectedCountry.BIP / 10 ** 6).toFixed(2)} Mio`
+                  : `${(selectedCountry.BIP / 10 ** 9).toFixed(2)} Bio`}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => setSelectedCountry(null)}
+            className="rounded bg-gray-600 px-3 py-1 text-sm hover:bg-gray-700"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+            Close
+          </button>
+        </header>
+      )}
+      <main className="flex h-full w-screen flex-col items-center justify-between pb-4 pt-8 px-16 bg-black">
+        <svg
+          width={width}
+          height={height}
+          style={{ background: "#cfe8ff", border: "1px solid #888" }}
+        >
+          {countries.map((c) =>
+            c.cells.map(([x, y], i) => (
+              <rect
+                key={`${c.id}-${i}`}
+                x={x * cellSize}
+                y={y * cellSize}
+                width={cellSize}
+                height={cellSize}
+                fill={selectedCountry?.id === c.id ? "#ffcc00" : c.color}
+                stroke={selectedCountry?.id === c.id ? "#000" : "#333"}
+                strokeWidth={0.1}
+                onClick={() => setSelectedCountry(c)}
+                style={{ cursor: "pointer" }}
+              />
+            ))
+          )}
+        </svg>
       </main>
     </div>
   );
