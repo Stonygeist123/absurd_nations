@@ -3,7 +3,7 @@ export default class Country {
     public population: number;
     public BIPpC: number;
     public BIP: number;
-    public constructor(public id: number,
+    public constructor(public ID: number,
         public name: string,
         public cells: Cells) {
         const popPerCell = Math.floor(Math.random() * (75000 - 1000 + 1) + 1000);

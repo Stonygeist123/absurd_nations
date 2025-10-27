@@ -6,6 +6,7 @@ import { createNoise2D } from "simplex-noise";
 const width = 1750;
 const height = 800;
 const scale = 0.05;
+const cellSize = width / 200;
 
 export default function Home() {
   const randomName = (): string => {
@@ -29,6 +30,7 @@ export default function Home() {
       .replace(/^\w/, (c) => c.toUpperCase());
   };
 
+  const [myCountry, setMyCountry] = useState<Country | null>(null);
   const [countries, setCountries] = useState<Array<Country>>([]);
   const [selectedCountry, setSelectedCountry] = useState<Country | null>(null);
   useEffect(() => {
@@ -91,9 +93,12 @@ export default function Home() {
 
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setCountries(generatedCountries);
+    setMyCountry(
+      generatedCountries[
+        Math.floor(Math.random() * generatedCountries.length - 1)
+      ] ?? null
+    );
   }, []);
-
-  const cellSize = width / 200;
 
   return (
     <div className="flex flex-col min-h-screen items-center justify-center font-sans bg-black">
@@ -138,23 +143,52 @@ export default function Home() {
         <svg
           width={width}
           height={height}
-          style={{ background: "#cfe8ff", border: "1px solid #888" }}
+          className="bg-[#cfe8ff] border border-solid border-[#888]"
         >
           {countries.map((c) =>
             c.cells.map(([x, y], i) => (
               <rect
-                key={`${c.id}-${i}`}
+                className="cursor-pointer"
+                key={`${c.ID}-${i}`}
                 x={x * cellSize}
                 y={y * cellSize}
                 width={cellSize}
                 height={cellSize}
-                fill={selectedCountry?.id === c.id ? "#ffcc00" : c.color}
-                stroke={selectedCountry?.id === c.id ? "#000" : "#333"}
+                fill={
+                  myCountry?.ID === c.ID
+                    ? "#0000ff"
+                    : selectedCountry?.ID === c.ID
+                    ? "#ffcc00"
+                    : c.color
+                }
+                stroke={selectedCountry?.ID === c.ID ? "#000" : "#333"}
                 strokeWidth={0.1}
                 onClick={() => setSelectedCountry(c)}
-                style={{ cursor: "pointer" }}
               />
             ))
+          )}
+
+          {myCountry && (
+            <text
+              className="pointer-events-none text-shadow-[2px_2px_8px_black]"
+              x={
+                (myCountry.cells.reduce((sum, [x]) => sum + x, 0) /
+                  myCountry.cells.length) *
+                cellSize
+              }
+              y={
+                (myCountry.cells.reduce((sum, [, y]) => sum + y, 0) /
+                  myCountry.cells.length) *
+                cellSize
+              }
+              textAnchor="middle"
+              alignmentBaseline="middle"
+              fontSize={20}
+              fill="white"
+              fontWeight="bold"
+            >
+              You
+            </text>
           )}
         </svg>
       </main>
